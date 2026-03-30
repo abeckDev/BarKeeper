@@ -9,6 +9,9 @@ DerivedData/
 .build/
 .swiftpm/
 
+#VS Code
+.vscode/
+
 # macOS
 .DS_Store
 *.dSYM
