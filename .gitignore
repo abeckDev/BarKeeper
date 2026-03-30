@@ -6,6 +6,10 @@ xcuserdata/
 DerivedData/
 *.xcodeproj
 
+#Release
+*.app
+*.dmg
+
 # Swift Package Manager
 .build/
 .swiftpm/
