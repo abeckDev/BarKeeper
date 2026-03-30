@@ -85,9 +85,9 @@
 			children = (
 				555DF601D7822BE9CC8A6A78 /* BarKeeperApp.swift */,
 				3C29FA7E22F8C2BA0359E90C /* Models */,
-				FEBCA135021EAAA11D3DF4BD /* Utilities */,
 				D5500DDE8C097A8809B926DB /* ViewModels */,
 				DE9FB54DD3AE943B2EF24A03 /* Views */,
+				FEBCA135021EAAA11D3DF4BD /* Utilities */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -256,7 +256,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.abeckdev.barkeeper.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.abeckdev.barkeeper;
 				PRODUCT_NAME = BarKeeper;
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;
@@ -337,7 +337,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.abeckdev.barkeeper.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.abeckdev.barkeeper;
 				PRODUCT_NAME = BarKeeper;
 				SDKROOT = macosx;
 				SWIFT_STRICT_CONCURRENCY = complete;

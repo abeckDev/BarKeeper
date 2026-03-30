@@ -58,7 +58,7 @@ struct AppConfiguration: Codable, Sendable {
             az fabric capacity show \
               --capacity-name "\(capacityName)" \
               --resource-group "\(resourceGroup)" \
-              --query "properties.state" -o tsv | grep -qi "Active"
+              --query "state" -o tsv | grep -qi "Active"
             """,
             onScript: """
             az fabric capacity resume \
