@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @Environment(ResourceManager.self) private var manager
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -56,7 +57,17 @@ struct MenuBarView: View {
 
             Spacer()
 
-            SettingsLink {
+            Button {
+                openSettings()
+                // Bring the settings window to the front on the current screen
+                DispatchQueue.main.async {
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    for window in NSApplication.shared.windows where window.identifier?.rawValue == "com_apple_SwiftUI_Settings_window" {
+                        window.makeKeyAndOrderFront(nil)
+                        window.orderFrontRegardless()
+                    }
+                }
+            } label: {
                 Label("Settings", systemImage: "gear")
                     .font(.caption)
             }
