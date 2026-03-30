@@ -2,7 +2,7 @@
 
 > BarKeeper - Use your macOS **Bar** to **Keep** your environments and shortcuts under control.
 
-A lightweight macOS menu bar app for managing cloud resources with one click. Run scripts, monitor the status of applications or spin up and shutdown Cloud Resources — all from your macOS top bar.
+A lightweight macOS menu bar app for managing resources with one click. Run scripts, monitor the status of applications or spin up and shutdown Cloud Resources — all from your macOS top bar.
 
 <!-- TODO: Add a screenshot of the menu bar popup and settings window here -->
 
