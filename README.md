@@ -34,6 +34,16 @@ A lightweight macOS menu bar app for managing resources with one click. Run scri
 
 ## Installation
 
+### Download from GitHub Releases
+
+The easiest way to install BarKeeper is to download the pre-built, notarized app from the [Releases page](../../releases):
+
+1. Go to the [Releases page](../../releases) and download the latest `BarKeeper.dmg`.
+2. Open the `.dmg` file and drag **BarKeeper.app** into your **Applications** folder.
+3. Eject the disk image and launch BarKeeper from your Applications folder.
+
+The app is signed and notarized by Apple's notarization service, so macOS Gatekeeper will allow it to run without any additional steps.
+
 ### Build from Source
 
 ```bash
