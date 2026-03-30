@@ -4,7 +4,17 @@
 
 A lightweight macOS menu bar app for managing resources with one click. Run scripts, monitor the status of applications or spin up and shutdown Cloud Resources — all from your macOS top bar.
 
-<!-- TODO: Add a screenshot of the menu bar popup and settings window here -->
+## Screenshots
+
+<div align="center">
+  <img src="docs/image2.png" alt="BarKeeper Menu Bar Popup" width="600">
+  <p><em>Menu bar popup showing toggles and buttons with status indicators</em></p>
+</div>
+
+<div align="center">
+  <img src="docs/image3.png" alt="BarKeeper Settings Window" width="800">
+  <p><em>Settings window for managing resources and configuration</em></p>
+</div>
 
 ## Features
 
@@ -51,6 +61,11 @@ swift build
 5. Close Settings — your resource appears in the menu bar popup
 
 ### Resource Types
+
+<div align="center">
+  <img src="docs/image4.png" alt="Resource Editor" width="700">
+  <p><em>Resource editor showing configuration options for a toggle resource</em></p>
+</div>
 
 BarKeeper supports two resource types:
 
