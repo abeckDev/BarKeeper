@@ -31,12 +31,12 @@ struct MenuBarLabel: View {
     }
 
     private var menuBarIconName: String {
-        if manager.resources.contains(where: { $0.lastError != nil }) {
-            return "exclamationmark.square.fill"
+            if manager.resources.contains(where: { $0.lastError != nil }) {
+                return "exclamationmark.circle.fill"
+            }
+            if manager.resources.contains(where: { $0.type == .toggle && $0.isOn }) {
+                return "slider.horizontal.below.square.filled.and.square"
+            }
+            return "slider.horizontal.3"
         }
-        if manager.resources.contains(where: { $0.type == .toggle && $0.isOn }) {
-            return "square.fill.on.square.fill"
-        }
-        return "square.on.square"
-    }
 }
