@@ -54,7 +54,7 @@ security import certificate.p12 -k signing.keychain-db \
 The keychain is deleted in the **Cleanup** step at the end of the run.
 
 ### 5. Build & Archive
-Runs `xcodebuild archive` with manual signing using the Developer ID Application identity, your Team ID, and the temporary keychain:
+Runs `xcodebuild archive` with manual signing using the Developer ID Application identity, Team ID, and the temporary keychain:
 
 ```bash
 xcodebuild archive \
@@ -123,11 +123,9 @@ security delete-keychain signing.keychain-db || true
 
 ## Required GitHub Secrets
 
-Add all six secrets at: **Repository → Settings → Secrets and variables → Actions → New repository secret**
-
 | Secret | Description | How to obtain |
 |--------|-------------|---------------|
-| `CERTIFICATE_P12` | Base64-encoded `.p12` export of your **Developer ID Application** certificate | In Keychain Access on your Mac: find the certificate → right-click → Export → save as `.p12` with a password. Then run `base64 -i certificate.p12 \| pbcopy` to copy the base64 string |
+| `CERTIFICATE_P12` | Base64-encoded `.p12` export of **Developer ID Application** certificate | In Keychain Access on your Mac: find the certificate → right-click → Export → save as `.p12` with a password. Then run `base64 -i certificate.p12 \| pbcopy` to copy the base64 string |
 | `CERTIFICATE_PASSWORD` | The password you set when exporting the `.p12` file | You chose this during the export step above |
 | `KEYCHAIN_PASSWORD` | Any strong random password used for the temporary CI keychain | Generate a random string, e.g. `openssl rand -base64 32` — this is only used during the CI run |
 | `TEAM_ID` | Your 10-character Apple Developer Team ID | Find it at [developer.apple.com/account](https://developer.apple.com/account) → Membership details |
