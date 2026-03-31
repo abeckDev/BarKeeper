@@ -33,6 +33,7 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "Apple Development"
+        DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
         COMBINE_HIDPI_IMAGES: true
         ENABLE_APP_SANDBOX: false
         ENABLE_HARDENED_RUNTIME: true
