@@ -1,5 +1,14 @@
 # BarKeeper 🍺
 
+[![Build, Sign, Notarize & Release](https://github.com/abeckDev/BarKeeper/actions/workflows/release.yml/badge.svg)](https://github.com/abeckDev/BarKeeper/actions/workflows/release.yml)
+![XcodeGen](https://img.shields.io/badge/XcodeGen-powered-blue)
+![Swift 6.0+](https://img.shields.io/badge/Swift-6.0+-orange?logo=swift)
+![macOS 15+](https://img.shields.io/badge/macOS-15.0%2B-lightgray?logo=apple&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Downloads](https://img.shields.io/github/downloads/abeckDev/BarKeeper/total)
+
+
+
 > BarKeeper - Use your macOS **Bar** to **Keep** your environments and shortcuts under control.
 
 A lightweight macOS menu bar app for managing resources with one click. Run scripts, monitor the status of applications or spin up and shutdown Cloud Resources — all from your macOS top bar.
