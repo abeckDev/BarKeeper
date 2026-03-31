@@ -1,0 +1,48 @@
+{
+  "fill" : "automatic",
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "glass" : false,
+          "image-name" : "wineglass.svg",
+          "name" : "wineglass",
+          "position" : {
+            "scale" : 20,
+            "translation-in-points" : [
+              -320.21269242195353,
+              0
+            ]
+          }
+        },
+        {
+          "glass" : false,
+          "hidden" : false,
+          "image-name" : "slider.horizontal.below.square.filled.and.square.svg",
+          "name" : "slider.horizontal.below.square.filled.and.square",
+          "position" : {
+            "scale" : 25,
+            "translation-in-points" : [
+              164.2309424219536,
+              0
+            ]
+          }
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "circles" : [
+      "watchOS"
+    ],
+    "squares" : "shared"
+  }
+}
