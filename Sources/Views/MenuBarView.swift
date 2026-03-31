@@ -13,9 +13,20 @@ struct MenuBarView: View {
             }
             Divider().padding(.vertical, 4)
             bottomActions
+            versionLabel
         }
         .padding(12)
         .frame(width: 280)
+    }
+
+    private var versionLabel: some View {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "–"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "–"
+        return Text("BarKeeper – v\(version) (\(build))")
+            .font(.caption2)
+            .foregroundStyle(.quaternary)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 8)
     }
 
     // MARK: - Subviews
