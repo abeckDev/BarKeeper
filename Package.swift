@@ -7,7 +7,12 @@ let package = Package(
     targets: [
         .executableTarget(
             name: "BarKeeper",
-            path: "Sources"
+            path: "Sources",
+            exclude: ["FoundryCheck"]
+        ),
+        .executableTarget(
+            name: "FoundryCheck",
+            path: "Sources/FoundryCheck"
         )
     ]
 )

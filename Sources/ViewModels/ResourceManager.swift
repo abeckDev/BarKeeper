@@ -140,6 +140,57 @@ final class ResourceManager {
         }
     }
 
+    /// Runs a `.report` resource: executes the script (with $FOUNDRY_CHECK set
+    /// to the embedded helper), parses stdout as JSON, stores the payload.
+    func runReport(_ resourceId: UUID) {
+        guard let state = resources.first(where: { $0.id == resourceId }),
+              state.type == .report else { return }
+
+        Task {
+            state.isLoading = true
+            state.lastError = nil
+            defer { state.isLoading = false; state.lastChecked = Date() }
+
+            guard let script = state.resource.actionScript, !script.isEmpty else {
+                state.lastError = "No script configured"
+                return
+            }
+
+            var env: [String: String] = [:]
+            if let helper = Self.embeddedFoundryCheckPath() {
+                env["FOUNDRY_CHECK"] = helper
+            }
+
+            do {
+                let result = try await shell.run(script, extraEnvironment: env)
+                guard result.succeeded else {
+                    state.lastError = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    return
+                }
+                guard let data = result.stdout.data(using: .utf8),
+                      let payload = ReportPayload.decode(from: data) else {
+                    state.lastError = "Could not parse report JSON"
+                    return
+                }
+                state.lastReport = payload
+            } catch {
+                state.lastError = error.localizedDescription
+            }
+        }
+    }
+
+    /// Resolves the bundled `foundry-check` helper inside the .app bundle.
+    /// Falls back to `nil` (script can use a system-installed copy via PATH).
+    private static func embeddedFoundryCheckPath() -> String? {
+        if let url = Bundle.main.url(forAuxiliaryExecutable: "foundry-check") {
+            return url.path
+        }
+        // Dev fallback: look next to the running executable.
+        let exeDir = Bundle.main.bundleURL.deletingLastPathComponent()
+        let candidate = exeDir.appendingPathComponent("foundry-check").path
+        return FileManager.default.fileExists(atPath: candidate) ? candidate : nil
+    }
+
     // MARK: - Status Polling
 
     func refreshAllStatuses() async {
