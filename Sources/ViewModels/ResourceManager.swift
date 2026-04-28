@@ -140,11 +140,19 @@ final class ResourceManager {
         }
     }
 
-    /// Runs a `.report` resource: executes the script (with $FOUNDRY_CHECK set
-    /// to the embedded helper), parses stdout as JSON, stores the payload.
-    func runReport(_ resourceId: UUID) {
+    /// Runs a `.feed` resource: executes the script, parses stdout as
+    /// `FeedPayload` JSON, and stores the result on `state.lastFeed`.
+    ///
+    /// MARK: - Feed polling policy
+    ///
+    /// `.feed` resources are **manual-refresh only** in v1 — they are
+    /// triggered exclusively by the refresh button in `ResourceRowView` and
+    /// are intentionally **not** wired into the toggle status-polling loop
+    /// (see `refreshAllStatuses`). Auto-polling for feeds is a sensible
+    /// follow-up but is out of scope for this change.
+    func runFeed(_ resourceId: UUID) {
         guard let state = resources.first(where: { $0.id == resourceId }),
-              state.type == .report else { return }
+              state.type == .feed else { return }
 
         Task {
             state.isLoading = true
@@ -156,39 +164,22 @@ final class ResourceManager {
                 return
             }
 
-            var env: [String: String] = [:]
-            if let helper = Self.embeddedFoundryCheckPath() {
-                env["FOUNDRY_CHECK"] = helper
-            }
-
             do {
-                let result = try await shell.run(script, extraEnvironment: env)
+                let result = try await shell.run(script)
                 guard result.succeeded else {
                     state.lastError = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
                     return
                 }
                 guard let data = result.stdout.data(using: .utf8),
-                      let payload = ReportPayload.decode(from: data) else {
-                    state.lastError = "Could not parse report JSON"
+                      let payload = FeedPayload.decode(from: data) else {
+                    state.lastError = "Could not parse feed JSON"
                     return
                 }
-                state.lastReport = payload
+                state.lastFeed = payload
             } catch {
                 state.lastError = error.localizedDescription
             }
         }
-    }
-
-    /// Resolves the bundled `foundry-check` helper inside the .app bundle.
-    /// Falls back to `nil` (script can use a system-installed copy via PATH).
-    private static func embeddedFoundryCheckPath() -> String? {
-        if let url = Bundle.main.url(forAuxiliaryExecutable: "foundry-check") {
-            return url.path
-        }
-        // Dev fallback: look next to the running executable.
-        let exeDir = Bundle.main.bundleURL.deletingLastPathComponent()
-        let candidate = exeDir.appendingPathComponent("foundry-check").path
-        return FileManager.default.fileExists(atPath: candidate) ? candidate : nil
     }
 
     // MARK: - Status Polling

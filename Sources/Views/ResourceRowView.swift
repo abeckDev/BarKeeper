@@ -31,8 +31,8 @@ struct ResourceRowView: View {
             .clipShape(RoundedRectangle(cornerRadius: 6))
             .help(tooltipText)
 
-            if state.type == .report, isExpanded, let report = state.lastReport {
-                reportItems(report)
+            if state.type == .feed, isExpanded, let feed = state.lastFeed {
+                feedItems(feed)
                     .padding(.leading, 24)
                     .padding(.bottom, 4)
             }
@@ -52,15 +52,15 @@ struct ResourceRowView: View {
             Image(systemName: "bolt.fill")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-        case .report:
+        case .feed:
             Button {
-                if state.lastReport != nil { isExpanded.toggle() }
+                if state.lastFeed != nil { isExpanded.toggle() }
             } label: {
-                Image(systemName: state.lastReport != nil
+                Image(systemName: state.lastFeed != nil
                       ? (isExpanded ? "chevron.down" : "chevron.right")
                       : "list.bullet.rectangle")
                     .font(.caption)
-                    .foregroundStyle(reportIndicatorColor)
+                    .foregroundStyle(feedIndicatorColor)
             }
             .buttonStyle(.plain)
         }
@@ -88,15 +88,15 @@ struct ResourceRowView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
 
-        case .report:
+        case .feed:
             HStack(spacing: 4) {
-                if let report = state.lastReport, report.newCount > 0 {
-                    Text("\(report.newCount) new")
+                if let feed = state.lastFeed, feed.newCount > 0 {
+                    Text("\(feed.newCount) new")
                         .font(.caption2)
                         .foregroundStyle(.green)
                 }
                 Button {
-                    manager.runReport(state.id)
+                    manager.runFeed(state.id)
                     isExpanded = true
                 } label: {
                     Image(systemName: "arrow.clockwise")
@@ -108,14 +108,14 @@ struct ResourceRowView: View {
         }
     }
 
-    private func reportItems(_ report: ReportPayload) -> some View {
+    private func feedItems(_ feed: FeedPayload) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            if report.items.isEmpty {
+            if feed.items.isEmpty {
                 Text("No matching items.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(Array(report.items.prefix(20)), id: \.self) { item in
+                ForEach(Array(feed.items.prefix(20)), id: \.self) { item in
                     HStack(spacing: 6) {
                         if item.isNew {
                             Text("NEW")
@@ -137,8 +137,8 @@ struct ResourceRowView: View {
                     }
                     .help(item.detail ?? "")
                 }
-                if report.items.count > 20 {
-                    Text("… + \(report.items.count - 20) more")
+                if feed.items.count > 20 {
+                    Text("… + \(feed.items.count - 20) more")
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
                 }
@@ -155,9 +155,9 @@ struct ResourceRowView: View {
         return state.isOn ? .green : .gray
     }
 
-    private var reportIndicatorColor: Color {
+    private var feedIndicatorColor: Color {
         if state.lastError != nil { return .red }
-        if let r = state.lastReport, r.newCount > 0 { return .green }
+        if let f = state.lastFeed, f.newCount > 0 { return .green }
         return .secondary
     }
 

@@ -9,8 +9,8 @@ final class ResourceState: Identifiable, @unchecked Sendable {
     var lastError: String?
     var lastChecked: Date?
 
-    /// Most recent report payload for `.report` resources.
-    var lastReport: ReportPayload?
+    /// Most recent feed payload for `.feed` resources.
+    var lastFeed: FeedPayload?
 
     var id: UUID { resource.id }
     var name: String { resource.name }

@@ -80,11 +80,6 @@ struct SettingsView: View {
                         manager.addResource(example)
                         selectedResourceId = example.id
                     }
-                    Button("Add Foundry EU DZ Models Report") {
-                        let example = AppConfiguration.foundryEUDataZoneExample()
-                        manager.addResource(example)
-                        selectedResourceId = example.id
-                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }

@@ -17,15 +17,9 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: Sources
-        excludes:
-          - "FoundryCheck"
+      - Sources
       - path: Resources/Assets.xcassets
         buildPhase: resources
-    dependencies:
-      - target: FoundryCheck
-        copy:
-          destination: executables
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.abeckdev.barkeeper
@@ -42,18 +36,4 @@ targets:
         DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
         COMBINE_HIDPI_IMAGES: true
         ENABLE_APP_SANDBOX: false
-        ENABLE_HARDENED_RUNTIME: true
-
-  FoundryCheck:
-    type: tool
-    platform: macOS
-    sources:
-      - Sources/FoundryCheck
-    settings:
-      base:
-        PRODUCT_NAME: foundry-check
-        SWIFT_STRICT_CONCURRENCY: complete
-        CODE_SIGN_STYLE: Automatic
-        CODE_SIGN_IDENTITY: "Apple Development"
-        DEVELOPMENT_TEAM: ${DEVELOPMENT_TEAM}
         ENABLE_HARDENED_RUNTIME: true
