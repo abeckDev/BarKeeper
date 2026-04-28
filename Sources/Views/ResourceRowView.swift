@@ -4,29 +4,39 @@ struct ResourceRowView: View {
     @Environment(ResourceManager.self) private var manager
     let state: ResourceState
 
+    @State private var isExpanded: Bool = false
+
     var body: some View {
-        HStack(spacing: 10) {
-            statusIndicator
-            Text(state.name)
-                .font(.body)
-                .lineLimit(1)
-                .truncationMode(.tail)
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 10) {
+                statusIndicator
+                Text(state.name)
+                    .font(.body)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
 
-            Spacer()
+                Spacer()
 
-            if state.isLoading {
-                ProgressView()
-                    .scaleEffect(0.6)
-                    .frame(width: 20, height: 20)
-            } else {
-                actionControl
+                if state.isLoading {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .frame(width: 20, height: 20)
+                } else {
+                    actionControl
+                }
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 8)
+            .background(hoverBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .help(tooltipText)
+
+            if state.type == .feed, isExpanded, let feed = state.lastFeed {
+                feedItems(feed)
+                    .padding(.leading, 24)
+                    .padding(.bottom, 4)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(hoverBackground)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .help(tooltipText)
     }
 
     // MARK: - Subviews
@@ -42,6 +52,17 @@ struct ResourceRowView: View {
             Image(systemName: "bolt.fill")
                 .font(.caption)
                 .foregroundStyle(.secondary)
+        case .feed:
+            Button {
+                if state.lastFeed != nil { isExpanded.toggle() }
+            } label: {
+                Image(systemName: state.lastFeed != nil
+                      ? (isExpanded ? "chevron.down" : "chevron.right")
+                      : "list.bullet.rectangle")
+                    .font(.caption)
+                    .foregroundStyle(feedIndicatorColor)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -66,6 +87,62 @@ struct ResourceRowView: View {
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
+
+        case .feed:
+            HStack(spacing: 4) {
+                if let feed = state.lastFeed, feed.newCount > 0 {
+                    Text("\(feed.newCount) new")
+                        .font(.caption2)
+                        .foregroundStyle(.green)
+                }
+                Button {
+                    manager.runFeed(state.id)
+                    isExpanded = true
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+    }
+
+    private func feedItems(_ feed: FeedPayload) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if feed.items.isEmpty {
+                Text("No matching items.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                ForEach(Array(feed.items.prefix(20)), id: \.self) { item in
+                    HStack(spacing: 6) {
+                        if item.isNew {
+                            Text("NEW")
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 4)
+                                .padding(.vertical, 1)
+                                .background(.green.opacity(0.25))
+                                .clipShape(RoundedRectangle(cornerRadius: 3))
+                                .foregroundStyle(.green)
+                        }
+                        Text(item.name)
+                            .font(.caption)
+                        if let sub = item.subtitle, !sub.isEmpty {
+                            Text(sub)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
+                        Spacer()
+                    }
+                    .help(item.detail ?? "")
+                }
+                if feed.items.count > 20 {
+                    Text("… + \(feed.items.count - 20) more")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
         }
     }
 
@@ -76,6 +153,12 @@ struct ResourceRowView: View {
     private var statusColor: Color {
         if state.lastError != nil { return .red }
         return state.isOn ? .green : .gray
+    }
+
+    private var feedIndicatorColor: Color {
+        if state.lastError != nil { return .red }
+        if let f = state.lastFeed, f.newCount > 0 { return .green }
+        return .secondary
     }
 
     private var tooltipText: String {

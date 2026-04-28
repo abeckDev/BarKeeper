@@ -140,6 +140,48 @@ final class ResourceManager {
         }
     }
 
+    /// Runs a `.feed` resource: executes the script, parses stdout as
+    /// `FeedPayload` JSON, and stores the result on `state.lastFeed`.
+    ///
+    /// MARK: - Feed polling policy
+    ///
+    /// `.feed` resources are **manual-refresh only** in v1 — they are
+    /// triggered exclusively by the refresh button in `ResourceRowView` and
+    /// are intentionally **not** wired into the toggle status-polling loop
+    /// (see `refreshAllStatuses`). Auto-polling for feeds is a sensible
+    /// follow-up but is out of scope for this change.
+    func runFeed(_ resourceId: UUID) {
+        guard let state = resources.first(where: { $0.id == resourceId }),
+              state.type == .feed else { return }
+
+        Task {
+            state.isLoading = true
+            state.lastError = nil
+            defer { state.isLoading = false; state.lastChecked = Date() }
+
+            guard let script = state.resource.actionScript, !script.isEmpty else {
+                state.lastError = "No script configured"
+                return
+            }
+
+            do {
+                let result = try await shell.run(script)
+                guard result.succeeded else {
+                    state.lastError = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    return
+                }
+                guard let data = result.stdout.data(using: .utf8),
+                      let payload = FeedPayload.decode(from: data) else {
+                    state.lastError = "Could not parse feed JSON"
+                    return
+                }
+                state.lastFeed = payload
+            } catch {
+                state.lastError = error.localizedDescription
+            }
+        }
+    }
+
     // MARK: - Status Polling
 
     func refreshAllStatuses() async {

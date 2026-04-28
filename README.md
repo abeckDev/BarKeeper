@@ -286,6 +286,7 @@ Sources/
 - **Scripts run with your full user privileges** — BarKeeper does not sandbox script execution. Only configure scripts you trust.
 - **Config is stored in cleartext** — the JSON file at `~/Library/Application Support/BarKeeper/` is readable by any process running as your user. Avoid storing secrets directly in scripts; use `az login` sessions, keychains, or environment variables instead.
 - **App Sandbox is disabled** — this is required for BarKeeper to execute arbitrary shell commands and access your login shell environment.
+- Feed resources fetch and parse data from external sources you choose — be especially deliberate about what URLs your feed scripts hit, since their output is rendered directly in your menu bar.
 
 ## Support & Problems
 
