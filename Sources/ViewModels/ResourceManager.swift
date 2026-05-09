@@ -42,9 +42,7 @@ final class ResourceManager {
 
     func updateResource(_ resource: Resource) {
         guard let index = resources.firstIndex(where: { $0.id == resource.id }) else { return }
-        let state = ResourceState(resource: resource)
-        state.isOn = resources[index].isOn
-        resources[index] = state
+        resources[index].resource = resource
         saveConfig()
         if resource.type == .toggle {
             Task { await refreshStatus(for: resource.id) }

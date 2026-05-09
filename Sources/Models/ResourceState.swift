@@ -3,7 +3,7 @@ import Foundation
 /// Runtime state for a resource, separate from the persisted configuration.
 @Observable
 final class ResourceState: Identifiable, @unchecked Sendable {
-    let resource: Resource
+    var resource: Resource
     var isOn: Bool = false
     var isLoading: Bool = false
     var lastError: String?
