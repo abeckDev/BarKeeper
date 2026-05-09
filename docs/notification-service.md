@@ -1,6 +1,6 @@
 # Notification Service
 
-BarKeeper surfaces macOS Notification Center alerts when toggle, button, or feed
+BarKeeper utilizes macOS Notification Center alerts when toggle, button, or feed
 actions complete (successfully or with an error). This document explains how the
 service works and how other modules can use it.
 
@@ -71,7 +71,7 @@ Old config files that predate this field are automatically treated as
 
 | Trigger                           | Condition      | Notification                                |
 |-----------------------------------|----------------|---------------------------------------------|
-| Toggle script succeeds            | exit code 0    | "Script started/stopped successfully."      |
+| Toggle script succeeds            | exit code 0    | "Started/Stopped successfully."      |
 | Toggle script fails               | exit code ≠ 0  | Error message from stderr (or exit code)    |
 | Button action succeeds            | exit code 0    | "Action completed successfully."            |
 | Button action fails               | exit code ≠ 0  | Error message from stderr (or exit code)    |
