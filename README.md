@@ -30,6 +30,7 @@ A lightweight macOS menu bar app for managing resources with one click. Run scri
 - **Menu Bar Native** — lives in your macOS menu bar, no Dock icon clutter
 - **Toggle Switches** — on/off controls with status monitoring (green/gray/red dots)
 - **Action Buttons** — one-click script execution
+- **Critical Actions** — optional confirmation dialog for dangerous button actions
 - **Feed Resources** — run a script that returns JSON and browse the results inline in the menu bar
 - **Configurable Polling** — automatic status checks (1 min to 1 hour, or manual only)
 - **Settings UI** — add/edit/delete resources with an easy to access UI
@@ -130,6 +131,8 @@ Clicking the toggle executes the on or off script based on the current state.
 #### Button
 
 A stateless resource with a **single action script**. Clicking it runs the script immediately. Useful for one-off tasks like flushing a cache, deploying a build, or opening a dashboard.
+
+**Critical Action** — Buttons can optionally be marked as *critical*. When `critical` is set to `true`, clicking the button shows a system-level confirmation dialog before the script is executed. This is useful for destructive or irreversible operations (e.g. deleting resources, force-pushing). If the `critical` field is omitted from the config, it defaults to `false`.
 
 #### Feed
 
@@ -300,7 +303,8 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
       "statusScript": null,
       "onScript": null,
       "offScript": null,
-      "actionScript": "./scripts/deploy-staging.sh"
+      "actionScript": "./scripts/deploy-staging.sh",
+      "critical": true
     },
     {
       "id": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
@@ -326,6 +330,7 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 | `onScript` | `String?` | Toggle only — script to turn the resource on. |
 | `offScript` | `String?` | Toggle only — script to turn the resource off. |
 | `actionScript` | `String?` | Button/Feed — script to run when clicked (button) or refreshed (feed). Feed scripts must print FeedPayload JSON to stdout. |
+| `critical` | `Bool` | Button only — if `true`, a system-level confirmation dialog is shown before executing the action. Defaults to `false` when omitted. |
 
 ### Import & Export
 

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ResourceRowView: View {
     @Environment(ResourceManager.self) private var manager
@@ -80,7 +81,14 @@ struct ResourceRowView: View {
 
         case .button:
             Button {
-                manager.runAction(state.id)
+                if state.resource.critical {
+                    let confirmed = Self.showCriticalAlert(name: state.name)
+                    if confirmed {
+                        manager.runAction(state.id)
+                    }
+                } else {
+                    manager.runAction(state.id)
+                }
             } label: {
                 Image(systemName: "play.fill")
                     .font(.caption)
@@ -172,5 +180,17 @@ struct ResourceRowView: View {
             parts.append("Checked \(formatter.localizedString(for: checked, relativeTo: Date()))")
         }
         return parts.joined(separator: "\n")
+    }
+
+    /// Show a system-level NSAlert for critical actions so it appears
+    /// centered on screen, independent of the menu bar popover.
+    private static func showCriticalAlert(name: String) -> Bool {
+        let alert = NSAlert()
+        alert.messageText = "Confirm Critical Action"
+        alert.informativeText = "Are you sure you want to execute \"\(name)\"?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Execute")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 }
