@@ -121,7 +121,7 @@ final class ResourceManager {
                     await refreshStatus(for: resourceId)
                     sendNotification(
                         title: state.name,
-                        message: wasOn ? "Script stopped successfully." : "Script started successfully.",
+                        message: wasOn ? "Stopped successfully." : "Started successfully.",
                         type: .success
                     )
                 } else {
