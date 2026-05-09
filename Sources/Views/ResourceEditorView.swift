@@ -10,6 +10,7 @@ struct ResourceEditorView: View {
     @State private var statusScript: String = ""
     @State private var onScript: String = ""
     @State private var offScript: String = ""
+    @State private var critical: Bool = false
 
     @Environment(\.dismiss) private var dismiss
 
@@ -30,6 +31,10 @@ struct ResourceEditorView: View {
             if type == .button {
                 Section("Action Script") {
                     scriptEditor(text: $actionScript, placeholder: "echo \"Hello from BarKeeper\"")
+                }
+                Section("Options") {
+                    Toggle("Critical Action", isOn: $critical)
+                        .help("Require confirmation before executing this action")
                 }
             } else if type == .feed {
                 Section("Feed Script (must print JSON to stdout)") {
@@ -69,6 +74,7 @@ struct ResourceEditorView: View {
         .onChange(of: statusScript) { _, _ in saveIfInline() }
         .onChange(of: onScript) { _, _ in saveIfInline() }
         .onChange(of: offScript) { _, _ in saveIfInline() }
+        .onChange(of: critical) { _, _ in saveIfInline() }
     }
 
     // MARK: - Helpers
@@ -97,6 +103,7 @@ struct ResourceEditorView: View {
         statusScript = r.statusScript ?? ""
         onScript = r.onScript ?? ""
         offScript = r.offScript ?? ""
+        critical = r.critical
     }
 
     private func buildResource() -> Resource {
@@ -107,7 +114,8 @@ struct ResourceEditorView: View {
             actionScript: (type == .button || type == .feed) ? actionScript.nilIfEmpty : nil,
             statusScript: type == .toggle ? statusScript.nilIfEmpty : nil,
             onScript: type == .toggle ? onScript.nilIfEmpty : nil,
-            offScript: type == .toggle ? offScript.nilIfEmpty : nil
+            offScript: type == .toggle ? offScript.nilIfEmpty : nil,
+            critical: type == .button ? critical : false
         )
     }
 

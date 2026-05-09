@@ -142,6 +142,9 @@ struct Resource: Identifiable, Codable, Sendable {
     var onScript: String?
     var offScript: String?
 
+    // Button: require confirmation before executing the action.
+    var critical: Bool
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -149,7 +152,8 @@ struct Resource: Identifiable, Codable, Sendable {
         actionScript: String? = nil,
         statusScript: String? = nil,
         onScript: String? = nil,
-        offScript: String? = nil
+        offScript: String? = nil,
+        critical: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -158,6 +162,19 @@ struct Resource: Identifiable, Codable, Sendable {
         self.statusScript = statusScript
         self.onScript = onScript
         self.offScript = offScript
+        self.critical = critical
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decode(UUID.self, forKey: .id)
+        self.name = try c.decode(String.self, forKey: .name)
+        self.type = try c.decode(ResourceType.self, forKey: .type)
+        self.actionScript = try c.decodeIfPresent(String.self, forKey: .actionScript)
+        self.statusScript = try c.decodeIfPresent(String.self, forKey: .statusScript)
+        self.onScript = try c.decodeIfPresent(String.self, forKey: .onScript)
+        self.offScript = try c.decodeIfPresent(String.self, forKey: .offScript)
+        self.critical = try c.decodeIfPresent(Bool.self, forKey: .critical) ?? false
     }
 }
 
