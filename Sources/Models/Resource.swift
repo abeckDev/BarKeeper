@@ -181,11 +181,27 @@ struct Resource: Identifiable, Codable, Sendable {
 struct AppConfiguration: Codable, Sendable {
     var resources: [Resource]
     var pollingIntervalSeconds: Int
+    var enableNotifications: Bool
 
     static let defaultConfig = AppConfiguration(
         resources: [],
-        pollingIntervalSeconds: 3600
+        pollingIntervalSeconds: 3600,
+        enableNotifications: true
     )
+
+    init(resources: [Resource], pollingIntervalSeconds: Int, enableNotifications: Bool = true) {
+        self.resources = resources
+        self.pollingIntervalSeconds = pollingIntervalSeconds
+        self.enableNotifications = enableNotifications
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.resources = try c.decode([Resource].self, forKey: .resources)
+        self.pollingIntervalSeconds = try c.decode(Int.self, forKey: .pollingIntervalSeconds)
+        // Default to true so existing configs opt-in automatically.
+        self.enableNotifications = try c.decodeIfPresent(Bool.self, forKey: .enableNotifications) ?? true
+    }
 
     /// Example config for Azure Fabric Capacity
     static func fabricCapacityExample(
