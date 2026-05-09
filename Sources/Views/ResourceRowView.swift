@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ResourceRowView: View {
     @Environment(ResourceManager.self) private var manager
@@ -186,7 +187,7 @@ struct ResourceRowView: View {
     private static func showCriticalAlert(name: String) -> Bool {
         let alert = NSAlert()
         alert.messageText = "Confirm Critical Action"
-        alert.informativeText = "Are you sure you want to execute \"\(name)\"? This action has been marked as critical."
+        alert.informativeText = "Are you sure you want to execute \"\(name)\"?"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Execute")
         alert.addButton(withTitle: "Cancel")
