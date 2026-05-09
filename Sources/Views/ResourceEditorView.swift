@@ -23,12 +23,17 @@ struct ResourceEditorView: View {
                 Picker("Type", selection: $type) {
                     Label("Button", systemImage: "bolt.fill").tag(ResourceType.button)
                     Label("Toggle", systemImage: "switch.2").tag(ResourceType.toggle)
+                    Label("Feed", systemImage: "list.bullet.rectangle").tag(ResourceType.feed)
                 }
             }
 
             if type == .button {
                 Section("Action Script") {
                     scriptEditor(text: $actionScript, placeholder: "echo \"Hello from BarKeeper\"")
+                }
+            } else if type == .feed {
+                Section("Feed Script (must print JSON to stdout)") {
+                    scriptEditor(text: $actionScript, placeholder: "my-feed-tool --format json")
                 }
             } else {
                 Section("Status Script") {
@@ -99,7 +104,7 @@ struct ResourceEditorView: View {
             id: resource?.id ?? UUID(),
             name: name,
             type: type,
-            actionScript: type == .button ? actionScript.nilIfEmpty : nil,
+            actionScript: (type == .button || type == .feed) ? actionScript.nilIfEmpty : nil,
             statusScript: type == .toggle ? statusScript.nilIfEmpty : nil,
             onScript: type == .toggle ? onScript.nilIfEmpty : nil,
             offScript: type == .toggle ? offScript.nilIfEmpty : nil

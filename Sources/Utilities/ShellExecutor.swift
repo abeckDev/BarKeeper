@@ -11,7 +11,8 @@ struct ShellResult: Sendable {
 actor ShellExecutor {
     /// Runs a shell script string in the user's default shell.
     /// Inherits the user's PATH so tools like `az` are discoverable.
-    func run(_ script: String) async throws -> ShellResult {
+    /// Optional `extraEnvironment` is merged into the inherited environment.
+    func run(_ script: String, extraEnvironment: [String: String] = [:]) async throws -> ShellResult {
         let process = Process()
         let stdoutPipe = Pipe()
         let stderrPipe = Pipe()
@@ -23,7 +24,9 @@ actor ShellExecutor {
         process.standardError = stderrPipe
 
         // Pass through the current environment so PATH includes Homebrew, etc.
-        process.environment = ProcessInfo.processInfo.environment
+        var env = ProcessInfo.processInfo.environment
+        for (k, v) in extraEnvironment { env[k] = v }
+        process.environment = env
 
         return try await withCheckedThrowingContinuation { continuation in
             process.terminationHandler = { _ in

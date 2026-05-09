@@ -30,6 +30,7 @@ A lightweight macOS menu bar app for managing resources with one click. Run scri
 - **Menu Bar Native** — lives in your macOS menu bar, no Dock icon clutter
 - **Toggle Switches** — on/off controls with status monitoring (green/gray/red dots)
 - **Action Buttons** — one-click script execution
+- **Feed Resources** — run a script that returns JSON and browse the results inline in the menu bar
 - **Configurable Polling** — automatic status checks (1 min to 1 hour, or manual only)
 - **Settings UI** — add/edit/delete resources with an easy to access UI
 - **JSON Import/Export** — share and backup your configuration in common JSON
@@ -114,7 +115,7 @@ xcodebuild build -project BarKeeper.xcodeproj -scheme BarKeeper -configuration D
   <p><em>Resource editor showing configuration options for a toggle resource</em></p>
 </div>
 
-BarKeeper supports two resource types:
+BarKeeper supports three resource types:
 
 #### Toggle
 
@@ -130,12 +131,58 @@ Clicking the toggle executes the on or off script based on the current state.
 
 A stateless resource with a **single action script**. Clicking it runs the script immediately. Useful for one-off tasks like flushing a cache, deploying a build, or opening a dashboard.
 
+#### Feed
+
+A read-only resource with a **single feed script** that prints JSON to stdout. Click the refresh button to run the script; results are displayed as an expandable list directly in the menu bar popup. A **green badge** shows how many items are new.
+
+Feeds are **manual-refresh only** — they are not included in the automatic polling loop.
+
+The script must exit with code `0` and print a JSON object matching the **FeedPayload** schema:
+
+```json
+{
+  "schemaVersion": 1,
+  "title": "Recent Deployments",
+  "checkedAt": "2026-05-08T12:00:00Z",
+  "items": [
+    {
+      "name": "Deploy #42 succeeded",
+      "subtitle": "main → production",
+      "detail": "Commit abc1234 by alice — 5 min ago",
+      "isNew": true
+    },
+    {
+      "name": "Deploy #41 succeeded",
+      "subtitle": "main → staging",
+      "detail": "Commit def5678 by bob — 2 hours ago",
+      "isNew": false
+    }
+  ],
+  "newCount": 1
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `schemaVersion` | `Int` | No | Payload version (defaults to `1` if omitted). |
+| `title` | `String` | No | Optional heading displayed above the item list. |
+| `checkedAt` | `String` | No | Optional timestamp shown in the UI. |
+| `items` | `[Item]` | Yes | List of feed items. Only the first 20 are shown; overflow is summarised. |
+| `items[].name` | `String` | Yes | Primary text for the item. |
+| `items[].subtitle` | `String` | No | Secondary text shown next to the name. |
+| `items[].detail` | `String` | No | Tooltip text shown on hover. |
+| `items[].isNew` | `Bool` | Yes | If `true`, the item gets a green **NEW** badge. |
+| `newCount` | `Int` | Yes | Number of new items; drives the badge in the menu bar. |
+
+> **Tip:** BarKeeper tolerates noisy shell output (e.g. Homebrew or nvm messages printed before the JSON). It extracts the **last** top-level `{…}` block from stdout, so your script doesn't need to suppress shell chatter.
+
 ### Script Convention
 
 | Script Type | Exit Code 0 | Non-zero Exit |
 |------------|-------------|---------------|
 | **Status** | Resource is ON (green) | Resource is OFF (gray) |
 | **On/Off/Action** | Success | Error (shown in tooltip) |
+| **Feed** | JSON payload parsed and displayed | Error (shown in tooltip) |
 
 ## How Scripts Are Executed
 
@@ -183,6 +230,32 @@ pkill -f "ssh -N -L 5432:localhost:5432 myserver"
 open "https://portal.azure.com/#view/Dashboard"
 ```
 
+**Check a web API for deployment updates (feed):**
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Fetch the 10 most recent deployments from a REST API
+response=$(curl -sf "https://api.example.com/deployments?limit=10" \
+  -H "Authorization: Bearer $(cat ~/.config/deploy-token)")
+
+# Transform the API response into the FeedPayload schema with jq
+echo "$response" | jq '{
+  schemaVersion: 1,
+  title: "Recent Deployments",
+  checkedAt: (now | strftime("%Y-%m-%dT%H:%M:%SZ")),
+  items: [.[] | {
+    name: (.status + " — " + .environment),
+    subtitle: (.branch + " @ " + .sha[0:7]),
+    detail: ("by " + .author + " — " + .finished_at),
+    isNew: (.status == "running" or .created_at > (now - 3600 | strftime("%Y-%m-%dT%H:%M:%SZ")))
+  }],
+  newCount: [.[] | select(.status == "running" or .created_at > (now - 3600 | strftime("%Y-%m-%dT%H:%M:%SZ")))] | length
+}'
+```
+
+> Any tool that outputs the FeedPayload JSON works — `curl` + `jq`, a Python script, a custom CLI, etc.
+
 ### Azure Fabric Capacity Example
 
 The built-in template uses these Azure CLI commands:
@@ -228,6 +301,15 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
       "onScript": null,
       "offScript": null,
       "actionScript": "./scripts/deploy-staging.sh"
+    },
+    {
+      "id": "A1B2C3D4-E5F6-7890-ABCD-EF1234567890",
+      "name": "Deployment Feed",
+      "type": "feed",
+      "statusScript": null,
+      "onScript": null,
+      "offScript": null,
+      "actionScript": "./scripts/check-deployments.sh"
     }
   ]
 }
@@ -239,11 +321,11 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 | `resources` | `[Resource]` | Ordered array of resources shown in the menu. |
 | `id` | `UUID` | Auto-generated unique identifier. |
 | `name` | `String` | Display name shown in the menu bar and settings. |
-| `type` | `"button"` \| `"toggle"` | Resource type. |
+| `type` | `"button"` \| `"toggle"` \| `"feed"` | Resource type. |
 | `statusScript` | `String?` | Toggle only — script to determine on/off state. |
 | `onScript` | `String?` | Toggle only — script to turn the resource on. |
 | `offScript` | `String?` | Toggle only — script to turn the resource off. |
-| `actionScript` | `String?` | Button only — script to run when clicked. |
+| `actionScript` | `String?` | Button/Feed — script to run when clicked (button) or refreshed (feed). Feed scripts must print FeedPayload JSON to stdout. |
 
 ### Import & Export
 
@@ -256,13 +338,13 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 Sources/
 ├── BarKeeperApp.swift           # App entry with MenuBarExtra + Settings scenes
 ├── Models/
-│   ├── Resource.swift           # Resource config model (button/toggle)
-│   └── ResourceState.swift      # Runtime state (@Observable)
+│   ├── Resource.swift           # Resource config model (button/toggle/feed) & FeedPayload schema
+│   └── ResourceState.swift      # Runtime state (@Observable), incl. lastFeed for feed resources
 ├── ViewModels/
-│   └── ResourceManager.swift    # Config, state, polling, script execution
+│   └── ResourceManager.swift    # Config, state, polling, script execution, feed parsing
 ├── Views/
 │   ├── MenuBarView.swift        # Menu bar popup
-│   ├── ResourceRowView.swift    # Toggle / button row
+│   ├── ResourceRowView.swift    # Toggle / button / feed row with expandable item list
 │   ├── SettingsView.swift       # Settings window with sidebar
 │   └── ResourceEditorView.swift # Resource add/edit form
 └── Utilities/
@@ -278,6 +360,8 @@ Sources/
 | `az` commands fail | Run `az login` in your terminal first. BarKeeper inherits your CLI session. |
 | Menu bar icon shows an error (❗) | Hover over the resource row to see the error in the tooltip. Fix the script and retry. |
 | Status always shows OFF | Make sure your status script exits with code `0` when the resource is on. Test with `<script> && echo ON || echo OFF`. |
+| Feed shows "Could not parse feed JSON" | Verify your script prints valid JSON matching the FeedPayload schema. Test with `<script> | jq .` to check syntax. |
+| Feed items don't appear | Make sure the script exits with code `0`. Non-zero exits are treated as errors. |
 | Config file is corrupted | Delete `~/Library/Application Support/BarKeeper/config.json` and relaunch. A fresh default config will be created. |
 | Polling feels too frequent/infrequent | Adjust the polling interval in **Settings** → **Polling Interval** (1 min to 1 hour, or manual). |
 
@@ -286,6 +370,7 @@ Sources/
 - **Scripts run with your full user privileges** — BarKeeper does not sandbox script execution. Only configure scripts you trust.
 - **Config is stored in cleartext** — the JSON file at `~/Library/Application Support/BarKeeper/` is readable by any process running as your user. Avoid storing secrets directly in scripts; use `az login` sessions, keychains, or environment variables instead.
 - **App Sandbox is disabled** — this is required for BarKeeper to execute arbitrary shell commands and access your login shell environment.
+- Feed resources fetch and parse data from external sources you choose — be especially deliberate about what URLs your feed scripts hit, since their output is rendered directly in your menu bar.
 
 ## Support & Problems
 
