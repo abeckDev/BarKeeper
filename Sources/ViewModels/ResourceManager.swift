@@ -6,13 +6,16 @@ import SwiftUI
 final class ResourceManager {
     private(set) var resources: [ResourceState] = []
     var pollingIntervalSeconds: Int = 3600
+    var enableNotifications: Bool = true
 
     private let shell = ShellExecutor()
+    private let notificationService = NotificationService()
     private var pollingTimer: Timer?
 
     init() {
         loadConfig()
         startPolling()
+        Task { await notificationService.requestAuthorization() }
     }
 
     // MARK: - Configuration
@@ -20,6 +23,7 @@ final class ResourceManager {
     func loadConfig() {
         let config = ConfigStore.load()
         pollingIntervalSeconds = config.pollingIntervalSeconds
+        enableNotifications = config.enableNotifications
         resources = config.resources.map { ResourceState(resource: $0) }
         Task { await refreshAllStatuses() }
     }
@@ -27,9 +31,14 @@ final class ResourceManager {
     func saveConfig() {
         let config = AppConfiguration(
             resources: resources.map(\.resource),
-            pollingIntervalSeconds: pollingIntervalSeconds
+            pollingIntervalSeconds: pollingIntervalSeconds,
+            enableNotifications: enableNotifications
         )
         ConfigStore.save(config)
+    }
+
+    func requestNotificationPermission() async {
+        await notificationService.requestAuthorization()
     }
 
     func addResource(_ resource: Resource) {
@@ -64,7 +73,8 @@ final class ResourceManager {
     func exportConfig() -> Data? {
         let config = AppConfiguration(
             resources: resources.map(\.resource),
-            pollingIntervalSeconds: pollingIntervalSeconds
+            pollingIntervalSeconds: pollingIntervalSeconds,
+            enableNotifications: enableNotifications
         )
         return ConfigStore.exportJSON(from: config)
     }
@@ -72,6 +82,7 @@ final class ResourceManager {
     func importConfig(from data: Data) -> Bool {
         guard let config = ConfigStore.importJSON(from: data) else { return false }
         pollingIntervalSeconds = config.pollingIntervalSeconds
+        enableNotifications = config.enableNotifications
         resources = config.resources.map { ResourceState(resource: $0) }
         saveConfig()
         restartPolling()
@@ -89,10 +100,17 @@ final class ResourceManager {
             state.isLoading = true
             state.lastError = nil
 
+            let wasOn = state.isOn
             let script = state.isOn ? state.resource.offScript : state.resource.onScript
             guard let script, !script.isEmpty else {
-                state.lastError = "No \(state.isOn ? "off" : "on") script configured"
+                let errorMessage = "No \(state.isOn ? "off" : "on") script configured"
+                state.lastError = errorMessage
                 state.isLoading = false
+                sendNotification(
+                    title: state.name,
+                    message: errorMessage,
+                    type: .error
+                )
                 return
             }
 
@@ -101,13 +119,21 @@ final class ResourceManager {
                 if result.succeeded {
                     // After toggling, refresh the actual status
                     await refreshStatus(for: resourceId)
+                    sendNotification(
+                        title: state.name,
+                        message: wasOn ? "Script stopped successfully." : "Script started successfully.",
+                        type: .success
+                    )
                 } else {
-                    state.lastError = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    let errorMessage = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    state.lastError = errorMessage
                     state.isLoading = false
+                    sendNotification(title: state.name, message: errorMessage, type: .error)
                 }
             } catch {
                 state.lastError = error.localizedDescription
                 state.isLoading = false
+                sendNotification(title: state.name, message: error.localizedDescription, type: .error)
             }
         }
     }
@@ -121,18 +147,29 @@ final class ResourceManager {
             state.lastError = nil
 
             guard let script = state.resource.actionScript, !script.isEmpty else {
-                state.lastError = "No action script configured"
+                let errorMessage = "No action script configured"
+                state.lastError = errorMessage
                 state.isLoading = false
+                sendNotification(title: state.name, message: errorMessage, type: .error)
                 return
             }
 
             do {
                 let result = try await shell.run(script)
-                if !result.succeeded {
-                    state.lastError = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                if result.succeeded {
+                    sendNotification(
+                        title: state.name,
+                        message: "Action completed successfully.",
+                        type: .success
+                    )
+                } else {
+                    let errorMessage = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    state.lastError = errorMessage
+                    sendNotification(title: state.name, message: errorMessage, type: .error)
                 }
             } catch {
                 state.lastError = error.localizedDescription
+                sendNotification(title: state.name, message: error.localizedDescription, type: .error)
             }
             state.isLoading = false
         }
@@ -158,26 +195,49 @@ final class ResourceManager {
             defer { state.isLoading = false; state.lastChecked = Date() }
 
             guard let script = state.resource.actionScript, !script.isEmpty else {
-                state.lastError = "No script configured"
+                let errorMessage = "No script configured"
+                state.lastError = errorMessage
+                sendNotification(title: state.name, message: errorMessage, type: .error)
                 return
             }
 
             do {
                 let result = try await shell.run(script)
                 guard result.succeeded else {
-                    state.lastError = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    let errorMessage = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    state.lastError = errorMessage
+                    sendNotification(title: state.name, message: errorMessage, type: .error)
                     return
                 }
                 guard let data = result.stdout.data(using: .utf8),
                       let payload = FeedPayload.decode(from: data) else {
-                    state.lastError = "Could not parse feed JSON"
+                    let errorMessage = "Could not parse feed JSON"
+                    state.lastError = errorMessage
+                    sendNotification(title: state.name, message: errorMessage, type: .error)
                     return
                 }
                 state.lastFeed = payload
+                let newCount = payload.newCount
+                if newCount > 0 {
+                    let itemWord = newCount == 1 ? "item" : "items"
+                    sendNotification(
+                        title: state.name,
+                        message: "\(newCount) new \(itemWord) available.",
+                        type: .success
+                    )
+                }
             } catch {
                 state.lastError = error.localizedDescription
+                sendNotification(title: state.name, message: error.localizedDescription, type: .error)
             }
         }
+    }
+
+    // MARK: - Notifications
+
+    private func sendNotification(title: String, message: String, type: NotificationService.NotificationType) {
+        guard enableNotifications else { return }
+        notificationService.notify(title: title, message: message, type: type)
     }
 
     // MARK: - Status Polling

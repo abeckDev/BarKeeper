@@ -112,6 +112,7 @@ struct SettingsView: View {
         } else {
             VStack(spacing: 16) {
                 pollingSettings
+                notificationSettings
                 Spacer()
                 Text("Select a resource or add a new one")
                     .foregroundStyle(.secondary)
@@ -137,6 +138,23 @@ struct SettingsView: View {
                     Text("Never").tag(0)
                 }
                 .frame(width: 140)
+            }
+            .padding(4)
+        }
+    }
+
+    private var notificationSettings: some View {
+        @Bindable var bindableManager = manager
+        return GroupBox("Notifications") {
+            HStack {
+                Text("Enable Notification Center alerts")
+                Spacer()
+                Toggle("", isOn: $bindableManager.enableNotifications)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
+                    .onChange(of: bindableManager.enableNotifications) { _, _ in
+                        manager.saveConfig()
+                    }
             }
             .padding(4)
         }
