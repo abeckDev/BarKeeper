@@ -108,6 +108,7 @@ struct SettingsView: View {
             ResourceEditorView(resource: state.resource) { updated in
                 manager.updateResource(updated)
             }
+            .id(state.id)
         } else {
             VStack(spacing: 16) {
                 pollingSettings
