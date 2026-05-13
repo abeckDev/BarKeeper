@@ -1,21 +1,79 @@
 #!/usr/bin/env swift
 //
-// commute-home-feed.swift — BarKeeper Feed Resource
+// commute-home.swift — BarKeeper Feed Resource
 //
 // Calculates the driving duration from your current location to your home
 // using Apple Maps (MapKit + CoreLocation) — no third-party dependencies.
 //
-// Usage in BarKeeper:
-//   swift /path/to/commute-home-feed.swift
+// ── Requirements ─────────────────────────────────────────────────────────
 //
-// Configuration (add to ~/.zprofile):
-//   export HOME_ADDRESS="Infinite Loop 1, Cupertino, CA"
-//
-// Requirements:
 //   - macOS 12+ (Monterey)
 //   - Xcode Command Line Tools  →  xcode-select --install
-//   - Location access granted to Terminal / BarKeeper
-//   - HOME_ADDRESS environment variable set
+//
+// ── Setup ────────────────────────────────────────────────────────────────
+//
+//   1. Set your home address (add to ~/.zprofile, then restart your shell):
+//
+//        export HOME_ADDRESS="Your Street 1, City, Country"
+//
+//      If BarKeeper is a GUI app, also run (re-run after each reboot):
+//
+//        launchctl setenv HOME_ADDRESS "Your Street 1, City, Country"
+//
+//   2. Create the .app bundle (needed for macOS location permissions —
+//      plain CLI scripts cannot request location access):
+//
+//        mkdir -p CommuteHome.app/Contents/MacOS
+//
+//      Then create CommuteHome.app/Contents/Info.plist with:
+//
+//        <?xml version="1.0" encoding="UTF-8"?>
+//        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+//          "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+//        <plist version="1.0">
+//        <dict>
+//            <key>CFBundleIdentifier</key>
+//            <string>com.barkeeper.commute-home</string>
+//            <key>CFBundleName</key>
+//            <string>CommuteHome</string>
+//            <key>CFBundleExecutable</key>
+//            <string>commute-home</string>
+//            <key>LSUIElement</key>
+//            <true/>
+//            <key>NSLocationUsageDescription</key>
+//            <string>Calculates driving time to home.</string>
+//            <key>NSLocationWhenInUseUsageDescription</key>
+//            <string>Calculates driving time to home.</string>
+//            <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+//            <string>Calculates driving time to home.</string>
+//        </dict>
+//        </plist>
+//
+//   3. Compile the binary into the app bundle:
+//
+//        swiftc commute-home.swift -o CommuteHome.app/Contents/MacOS/commute-home
+//
+//   4. Grant location permission by launching it once:
+//
+//        open CommuteHome.app
+//
+//      macOS will show a "CommuteHome wants to use your location" prompt.
+//      Click Allow. After this, CommuteHome appears in:
+//        System Settings → Privacy & Security → Location Services
+//
+//   5. Run it (e.g., from a launcher script for BarKeeper):
+//
+//        OUT=$(mktemp) && open --stdout "$OUT" --wait-apps CommuteHome.app && cat "$OUT"; rm "$OUT"
+//
+//      It must be launched via `open` so macOS uses the app bundle identity
+//      for location access. Running the binary directly uses the calling
+//      app's identity (e.g., Terminal), which may not have permission.
+//
+// ── Rebuilding ───────────────────────────────────────────────────────────
+//
+//   After editing this file, recompile:
+//
+//     swiftc commute-home.swift -o CommuteHome.app/Contents/MacOS/commute-home
 //
 
 import Foundation
@@ -24,7 +82,16 @@ import MapKit
 
 // ── Configuration ────────────────────────────────────────────────────────────
 
-let homeAddress = ProcessInfo.processInfo.environment["HOME_ADDRESS"] ?? ""
+let rawHomeAddress = ProcessInfo.processInfo.environment["HOME_ADDRESS"] ?? ""
+
+// Guard against double-UTF-8 encoding (happens when launched via `open`)
+let homeAddress: String = {
+    if let data = rawHomeAddress.cString(using: .isoLatin1),
+       let fixed = String(cString: data, encoding: .utf8) {
+        return fixed
+    }
+    return rawHomeAddress
+}()
 
 guard !homeAddress.isEmpty else {
     fputs("Error: HOME_ADDRESS environment variable is not set.\n", stderr)
@@ -124,6 +191,7 @@ func emitFeed(durationMinutes: Int) {
 final class CommuteRunner: NSObject, CLLocationManagerDelegate {
 
     private let manager = CLLocationManager()
+    private var didStartUpdating = false
     var isFinished = false
 
     override init() {
@@ -140,17 +208,20 @@ final class CommuteRunner: NSObject, CLLocationManagerDelegate {
         case .denied, .restricted:
             emitError(
                 "Location access denied. Go to System Settings → Privacy & Security → " +
-                "Location Services and allow access for Terminal (or BarKeeper)."
+                "Location Services and allow access for CommuteHome (or BarKeeper)."
             )
         default:
+            guard !didStartUpdating else { return }
+            didStartUpdating = true
             manager.startUpdatingLocation()
         }
     }
 
-    // Called after the user responds to the permission prompt
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
+            guard !didStartUpdating else { return }
+            didStartUpdating = true
             manager.startUpdatingLocation()
         case .denied, .restricted:
             emitError(
@@ -180,7 +251,7 @@ final class CommuteRunner: NSObject, CLLocationManagerDelegate {
         CLGeocoder().geocodeAddressString(homeAddress) { placemarks, error in
             guard let homePlacemark = placemarks?.first else {
                 emitError(
-                    "Could not geocode HOME_ADDRESS "\(homeAddress)": " +
+                    "Could not geocode HOME_ADDRESS \"\(homeAddress)\": " +
                     (error?.localizedDescription ?? "unknown error")
                 )
                 return
