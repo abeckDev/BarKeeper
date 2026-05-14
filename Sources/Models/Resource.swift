@@ -231,21 +231,4 @@ struct AppConfiguration: Codable, Sendable {
             """
         )
     }
-
-    /// Example config for switching between two GitHub accounts (GitHub.com vs GitHub Enterprise).
-    ///
-    /// The status script prints the active hostname; the action script calls `gh auth switch`
-    /// to cycle to the next account. Adjust hostnames and the switch command to match your setup.
-    static func githubProfilesExample(
-        enterpriseHostname: String = "github.mycompany.com"
-    ) -> Resource {
-        Resource(
-            name: "GitHub Profile",
-            type: .alternator,
-            actionScript: "gh auth switch",
-            statusScript: """
-            gh auth status --active 2>&1 | grep -q '<PrivateAccountName e.g.: abeckDev>' && echo "Personal" || echo "Work"
-            """,
-        )
-    }
 }
