@@ -64,6 +64,7 @@ struct MenuBarView: View {
                     .font(.caption)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .foregroundStyle(.secondary)
 
             Spacer()
@@ -83,6 +84,7 @@ struct MenuBarView: View {
                     .font(.caption)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .foregroundStyle(.secondary)
 
             Spacer()
@@ -94,6 +96,7 @@ struct MenuBarView: View {
                     .font(.caption)
             }
             .buttonStyle(.plain)
+            .contentShape(Rectangle())
             .foregroundStyle(.secondary)
         }
     }
