@@ -270,6 +270,8 @@ Use this type for tools that rotate between discrete states with a single comman
 - Rotating `kubectl` contexts (`kubectl config use-context`)
 
 > See the wiki for a step-by-step guide: **Using the Alternator to Switch Git Accounts**.
+>
+> [Switch Git Profile Wiki Page](https://github.com/abeckDev/BarKeeper/wiki/SwitchGitProfile-AlternatorResource)
 
 ### Azure Fabric Capacity Example
 
