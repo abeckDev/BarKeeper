@@ -38,7 +38,14 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             List(selection: $selectedResourceId) {
                 ForEach(manager.resources) { state in
-                    Label(state.name, systemImage: state.type == .toggle ? "switch.2" : "bolt.fill")
+                    Label(state.name, systemImage: {
+                            switch state.type {
+                            case .toggle: "switch.2"
+                            case .alternator: "arrow.left.arrow.right"
+                            case .feed: "list.bullet.rectangle"
+                            case .button: "bolt.fill"
+                            }
+                        }())
                         .tag(state.id)
                 }
                 .onMove { source, destination in

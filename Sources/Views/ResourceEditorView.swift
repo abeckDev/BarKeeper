@@ -25,6 +25,7 @@ struct ResourceEditorView: View {
                     Label("Button", systemImage: "bolt.fill").tag(ResourceType.button)
                     Label("Toggle", systemImage: "switch.2").tag(ResourceType.toggle)
                     Label("Feed", systemImage: "list.bullet.rectangle").tag(ResourceType.feed)
+                    Label("Alternator", systemImage: "arrow.left.arrow.right").tag(ResourceType.alternator)
                 }
             }
 
@@ -39,6 +40,13 @@ struct ResourceEditorView: View {
             } else if type == .feed {
                 Section("Feed Script (must print JSON to stdout)") {
                     scriptEditor(text: $actionScript, placeholder: "my-feed-tool --format json")
+                }
+            } else if type == .alternator {
+                Section("Status Script") {
+                    scriptEditor(text: $statusScript, placeholder: "Print the active state label to stdout, e.g. echo \"Personal\"")
+                }
+                Section("Action Script") {
+                    scriptEditor(text: $actionScript, placeholder: "Script to switch to the other state, e.g. gh auth switch")
                 }
             } else {
                 Section("Status Script") {
@@ -104,6 +112,7 @@ struct ResourceEditorView: View {
         onScript = r.onScript ?? ""
         offScript = r.offScript ?? ""
         critical = r.critical
+
     }
 
     private func buildResource() -> Resource {
@@ -111,8 +120,8 @@ struct ResourceEditorView: View {
             id: resource?.id ?? UUID(),
             name: name,
             type: type,
-            actionScript: (type == .button || type == .feed) ? actionScript.nilIfEmpty : nil,
-            statusScript: type == .toggle ? statusScript.nilIfEmpty : nil,
+            actionScript: (type == .button || type == .feed || type == .alternator) ? actionScript.nilIfEmpty : nil,
+            statusScript: (type == .toggle || type == .alternator) ? statusScript.nilIfEmpty : nil,
             onScript: type == .toggle ? onScript.nilIfEmpty : nil,
             offScript: type == .toggle ? offScript.nilIfEmpty : nil,
             critical: type == .button ? critical : false
