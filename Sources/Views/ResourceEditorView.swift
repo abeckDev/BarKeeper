@@ -11,7 +11,6 @@ struct ResourceEditorView: View {
     @State private var onScript: String = ""
     @State private var offScript: String = ""
     @State private var critical: Bool = false
-    @State private var alternatorLabels: String = ""  // comma-separated, e.g. "Personal, Work"
 
     @Environment(\.dismiss) private var dismiss
 
@@ -49,10 +48,6 @@ struct ResourceEditorView: View {
                 Section("Action Script") {
                     scriptEditor(text: $actionScript, placeholder: "Script to switch to the other state, e.g. gh auth switch")
                 }
-                Section("State Labels (optional)") {
-                    TextField("e.g. Personal, Work", text: $alternatorLabels)
-                        .help("Comma-separated labels for the two states. Used for documentation only.")
-                }
             } else {
                 Section("Status Script") {
                     scriptEditor(text: $statusScript, placeholder: "Exit code 0 = ON, non-zero = OFF")
@@ -88,7 +83,6 @@ struct ResourceEditorView: View {
         .onChange(of: onScript) { _, _ in saveIfInline() }
         .onChange(of: offScript) { _, _ in saveIfInline() }
         .onChange(of: critical) { _, _ in saveIfInline() }
-        .onChange(of: alternatorLabels) { _, _ in saveIfInline() }
     }
 
     // MARK: - Helpers
@@ -118,16 +112,11 @@ struct ResourceEditorView: View {
         onScript = r.onScript ?? ""
         offScript = r.offScript ?? ""
         critical = r.critical
-        alternatorLabels = r.alternatorLabels?.joined(separator: ", ") ?? ""
+
     }
 
     private func buildResource() -> Resource {
-        let parsedLabels = alternatorLabels
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty }
-
-        return Resource(
+        Resource(
             id: resource?.id ?? UUID(),
             name: name,
             type: type,
@@ -135,8 +124,7 @@ struct ResourceEditorView: View {
             statusScript: (type == .toggle || type == .alternator) ? statusScript.nilIfEmpty : nil,
             onScript: type == .toggle ? onScript.nilIfEmpty : nil,
             offScript: type == .toggle ? offScript.nilIfEmpty : nil,
-            critical: type == .button ? critical : false,
-            alternatorLabels: (type == .alternator && !parsedLabels.isEmpty) ? parsedLabels : nil
+            critical: type == .button ? critical : false
         )
     }
 

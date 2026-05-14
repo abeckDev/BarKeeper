@@ -147,9 +147,6 @@ struct Resource: Identifiable, Codable, Sendable {
     // Button: require confirmation before executing the action.
     var critical: Bool
 
-    // Alternator: human-readable labels for each state (optional, for display only).
-    var alternatorLabels: [String]?
-
     init(
         id: UUID = UUID(),
         name: String,
@@ -158,8 +155,7 @@ struct Resource: Identifiable, Codable, Sendable {
         statusScript: String? = nil,
         onScript: String? = nil,
         offScript: String? = nil,
-        critical: Bool = false,
-        alternatorLabels: [String]? = nil
+        critical: Bool = false
     ) {
         self.id = id
         self.name = name
@@ -169,7 +165,6 @@ struct Resource: Identifiable, Codable, Sendable {
         self.onScript = onScript
         self.offScript = offScript
         self.critical = critical
-        self.alternatorLabels = alternatorLabels
     }
 
     init(from decoder: Decoder) throws {
@@ -182,7 +177,6 @@ struct Resource: Identifiable, Codable, Sendable {
         self.onScript = try c.decodeIfPresent(String.self, forKey: .onScript)
         self.offScript = try c.decodeIfPresent(String.self, forKey: .offScript)
         self.critical = try c.decodeIfPresent(Bool.self, forKey: .critical) ?? false
-        self.alternatorLabels = try c.decodeIfPresent([String].self, forKey: .alternatorLabels)
     }
 }
 
@@ -262,7 +256,6 @@ struct AppConfiguration: Codable, Sendable {
               echo "Unknown"
             fi
             """,
-            alternatorLabels: ["Personal", "Work"]
         )
     }
 }
