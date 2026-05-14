@@ -44,7 +44,7 @@ final class ResourceManager {
     func addResource(_ resource: Resource) {
         resources.append(ResourceState(resource: resource))
         saveConfig()
-        if resource.type == .toggle {
+        if resource.type == .toggle || resource.type == .alternator {
             Task { await refreshStatus(for: resource.id) }
         }
     }
@@ -53,7 +53,7 @@ final class ResourceManager {
         guard let index = resources.firstIndex(where: { $0.id == resource.id }) else { return }
         resources[index].resource = resource
         saveConfig()
-        if resource.type == .toggle {
+        if resource.type == .toggle || resource.type == .alternator {
             Task { await refreshStatus(for: resource.id) }
         }
     }
@@ -175,16 +175,6 @@ final class ResourceManager {
         }
     }
 
-    /// Runs a `.feed` resource: executes the script, parses stdout as
-    /// `FeedPayload` JSON, and stores the result on `state.lastFeed`.
-    ///
-    /// MARK: - Feed polling policy
-    ///
-    /// `.feed` resources are **manual-refresh only** in v1 — they are
-    /// triggered exclusively by the refresh button in `ResourceRowView` and
-    /// are intentionally **not** wired into the toggle status-polling loop
-    /// (see `refreshAllStatuses`). Auto-polling for feeds is a sensible
-    /// follow-up but is out of scope for this change.
     func runFeed(_ resourceId: UUID) {
         guard let state = resources.first(where: { $0.id == resourceId }),
               state.type == .feed else { return }
@@ -233,6 +223,50 @@ final class ResourceManager {
         }
     }
 
+    // MARK: - Alternator
+
+    /// Executes the action script for an `.alternator` resource, then re-polls the status.
+    func runAlternator(_ resourceId: UUID) {
+        guard let state = resources.first(where: { $0.id == resourceId }),
+              state.type == .alternator else { return }
+
+        Task {
+            state.isLoading = true
+            state.lastError = nil
+
+            guard let script = state.resource.actionScript, !script.isEmpty else {
+                let errorMessage = "No action script configured"
+                state.lastError = errorMessage
+                state.isLoading = false
+                sendNotification(title: state.name, message: errorMessage, type: .error)
+                return
+            }
+
+            do {
+                let result = try await shell.run(script)
+                if result.succeeded {
+                    await refreshStatus(for: resourceId)
+                    if let newValue = state.currentValue {
+                        sendNotification(
+                            title: state.name,
+                            message: "Switched to \(newValue).",
+                            type: .success
+                        )
+                    }
+                } else {
+                    let errorMessage = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    state.lastError = errorMessage
+                    state.isLoading = false
+                    sendNotification(title: state.name, message: errorMessage, type: .error)
+                }
+            } catch {
+                state.lastError = error.localizedDescription
+                state.isLoading = false
+                sendNotification(title: state.name, message: error.localizedDescription, type: .error)
+            }
+        }
+    }
+
     // MARK: - Notifications
 
     private func sendNotification(title: String, message: String, type: NotificationService.NotificationType) {
@@ -244,7 +278,7 @@ final class ResourceManager {
 
     func refreshAllStatuses() async {
         await withTaskGroup(of: Void.self) { group in
-            for state in resources where state.type == .toggle {
+            for state in resources where state.type == .toggle || state.type == .alternator {
                 group.addTask { [weak self] in
                     await self?.refreshStatus(for: state.id)
                 }
@@ -264,8 +298,14 @@ final class ResourceManager {
 
         do {
             let result = try await shell.run(script)
-            state.isOn = result.succeeded  // Exit code 0 = ON
-            state.lastError = nil
+            if state.type == .alternator {
+                // Alternator: capture trimmed stdout as the current value
+                state.currentValue = result.stdout.trimmingCharacters(in: .whitespacesAndNewlines).nilIfEmpty
+                state.lastError = result.succeeded ? nil : (result.stderr.nilIfEmpty ?? "Status script failed (exit \(result.exitCode))")
+            } else {
+                state.isOn = result.succeeded  // Exit code 0 = ON
+                state.lastError = nil
+            }
         } catch {
             state.lastError = error.localizedDescription
         }
@@ -297,5 +337,11 @@ final class ResourceManager {
         pollingIntervalSeconds = seconds
         saveConfig()
         restartPolling()
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

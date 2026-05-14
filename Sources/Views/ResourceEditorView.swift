@@ -11,6 +11,7 @@ struct ResourceEditorView: View {
     @State private var onScript: String = ""
     @State private var offScript: String = ""
     @State private var critical: Bool = false
+    @State private var alternatorLabels: String = ""  // comma-separated, e.g. "Personal, Work"
 
     @Environment(\.dismiss) private var dismiss
 
@@ -25,6 +26,7 @@ struct ResourceEditorView: View {
                     Label("Button", systemImage: "bolt.fill").tag(ResourceType.button)
                     Label("Toggle", systemImage: "switch.2").tag(ResourceType.toggle)
                     Label("Feed", systemImage: "list.bullet.rectangle").tag(ResourceType.feed)
+                    Label("Alternator", systemImage: "arrow.left.arrow.right").tag(ResourceType.alternator)
                 }
             }
 
@@ -39,6 +41,17 @@ struct ResourceEditorView: View {
             } else if type == .feed {
                 Section("Feed Script (must print JSON to stdout)") {
                     scriptEditor(text: $actionScript, placeholder: "my-feed-tool --format json")
+                }
+            } else if type == .alternator {
+                Section("Status Script") {
+                    scriptEditor(text: $statusScript, placeholder: "Print the active state label to stdout, e.g. echo \"Personal\"")
+                }
+                Section("Action Script") {
+                    scriptEditor(text: $actionScript, placeholder: "Script to switch to the other state, e.g. gh auth switch")
+                }
+                Section("State Labels (optional)") {
+                    TextField("e.g. Personal, Work", text: $alternatorLabels)
+                        .help("Comma-separated labels for the two states. Used for documentation only.")
                 }
             } else {
                 Section("Status Script") {
@@ -75,6 +88,7 @@ struct ResourceEditorView: View {
         .onChange(of: onScript) { _, _ in saveIfInline() }
         .onChange(of: offScript) { _, _ in saveIfInline() }
         .onChange(of: critical) { _, _ in saveIfInline() }
+        .onChange(of: alternatorLabels) { _, _ in saveIfInline() }
     }
 
     // MARK: - Helpers
@@ -104,18 +118,25 @@ struct ResourceEditorView: View {
         onScript = r.onScript ?? ""
         offScript = r.offScript ?? ""
         critical = r.critical
+        alternatorLabels = r.alternatorLabels?.joined(separator: ", ") ?? ""
     }
 
     private func buildResource() -> Resource {
-        Resource(
+        let parsedLabels = alternatorLabels
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        return Resource(
             id: resource?.id ?? UUID(),
             name: name,
             type: type,
-            actionScript: (type == .button || type == .feed) ? actionScript.nilIfEmpty : nil,
-            statusScript: type == .toggle ? statusScript.nilIfEmpty : nil,
+            actionScript: (type == .button || type == .feed || type == .alternator) ? actionScript.nilIfEmpty : nil,
+            statusScript: (type == .toggle || type == .alternator) ? statusScript.nilIfEmpty : nil,
             onScript: type == .toggle ? onScript.nilIfEmpty : nil,
             offScript: type == .toggle ? offScript.nilIfEmpty : nil,
-            critical: type == .button ? critical : false
+            critical: type == .button ? critical : false,
+            alternatorLabels: (type == .alternator && !parsedLabels.isEmpty) ? parsedLabels : nil
         )
     }
 

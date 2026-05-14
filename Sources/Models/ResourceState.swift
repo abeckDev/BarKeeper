@@ -12,6 +12,9 @@ final class ResourceState: Identifiable, @unchecked Sendable {
     /// Most recent feed payload for `.feed` resources.
     var lastFeed: FeedPayload?
 
+    /// Current string value for `.alternator` resources (stdout of statusScript).
+    var currentValue: String?
+
     var id: UUID { resource.id }
     var name: String { resource.name }
     var type: ResourceType { resource.type }

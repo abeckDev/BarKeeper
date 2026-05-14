@@ -4,6 +4,8 @@ enum ResourceType: String, Codable, CaseIterable, Sendable {
     case button
     case toggle
     case feed
+    /// Shows a string label (stdout of statusScript) and switches state with one click (actionScript).
+    case alternator
 }
 
 /// Output schema for `.feed` resources. A feed resource's actionScript is
@@ -145,6 +147,9 @@ struct Resource: Identifiable, Codable, Sendable {
     // Button: require confirmation before executing the action.
     var critical: Bool
 
+    // Alternator: human-readable labels for each state (optional, for display only).
+    var alternatorLabels: [String]?
+
     init(
         id: UUID = UUID(),
         name: String,
@@ -153,7 +158,8 @@ struct Resource: Identifiable, Codable, Sendable {
         statusScript: String? = nil,
         onScript: String? = nil,
         offScript: String? = nil,
-        critical: Bool = false
+        critical: Bool = false,
+        alternatorLabels: [String]? = nil
     ) {
         self.id = id
         self.name = name
@@ -163,6 +169,7 @@ struct Resource: Identifiable, Codable, Sendable {
         self.onScript = onScript
         self.offScript = offScript
         self.critical = critical
+        self.alternatorLabels = alternatorLabels
     }
 
     init(from decoder: Decoder) throws {
@@ -175,6 +182,7 @@ struct Resource: Identifiable, Codable, Sendable {
         self.onScript = try c.decodeIfPresent(String.self, forKey: .onScript)
         self.offScript = try c.decodeIfPresent(String.self, forKey: .offScript)
         self.critical = try c.decodeIfPresent(Bool.self, forKey: .critical) ?? false
+        self.alternatorLabels = try c.decodeIfPresent([String].self, forKey: .alternatorLabels)
     }
 }
 
@@ -227,6 +235,34 @@ struct AppConfiguration: Codable, Sendable {
               --capacity-name "\(capacityName)" \
               --resource-group "\(resourceGroup)"
             """
+        )
+    }
+
+    /// Example config for switching between two GitHub accounts (GitHub.com vs GitHub Enterprise).
+    ///
+    /// The status script prints the active hostname; the action script calls `gh auth switch`
+    /// to cycle to the next account. Adjust hostnames and the switch command to match your setup.
+    static func githubProfilesExample(
+        enterpriseHostname: String = "github.mycompany.com"
+    ) -> Resource {
+        Resource(
+            name: "GitHub Profile",
+            type: .alternator,
+            actionScript: "gh auth switch",
+            statusScript: """
+            active=$(gh auth status 2>&1 | grep "Active account" | awk '{print $NF}')
+            if [ "$active" = "true" ]; then
+              host=$(gh auth status 2>&1 | grep "Logged in to" | awk '{print $4}')
+              if echo "$host" | grep -q "\(enterpriseHostname)"; then
+                echo "Work"
+              else
+                echo "Personal"
+              fi
+            else
+              echo "Unknown"
+            fi
+            """,
+            alternatorLabels: ["Personal", "Work"]
         )
     }
 }

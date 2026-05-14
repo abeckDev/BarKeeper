@@ -64,6 +64,10 @@ struct ResourceRowView: View {
                     .foregroundStyle(feedIndicatorColor)
             }
             .buttonStyle(.plain)
+        case .alternator:
+            Image(systemName: "arrow.left.arrow.right")
+                .font(.caption)
+                .foregroundStyle(state.lastError != nil ? .red : .secondary)
         }
     }
 
@@ -112,6 +116,32 @@ struct ResourceRowView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.small)
+            }
+
+        case .alternator:
+            HStack(spacing: 6) {
+                if let value = state.currentValue {
+                    Text(value)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(.tint.opacity(0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                } else {
+                    Text("—")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    manager.runAlternator(state.id)
+                } label: {
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(.caption)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .help("Switch to the other state")
             }
         }
     }
