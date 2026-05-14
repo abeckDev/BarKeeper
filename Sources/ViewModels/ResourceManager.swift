@@ -287,8 +287,14 @@ final class ResourceManager {
     }
 
     func refreshStatus(for resourceId: UUID) async {
-        guard let state = resources.first(where: { $0.id == resourceId }),
-              let script = state.resource.statusScript, !script.isEmpty else { return }
+        guard let state = resources.first(where: { $0.id == resourceId }) else { return }
+
+        guard let script = state.resource.statusScript, !script.isEmpty else {
+            // No status script configured: clear loading state so the UI can always recover.
+            state.isLoading = false
+            state.lastChecked = Date()
+            return
+        }
 
         state.isLoading = true
         defer {
