@@ -244,17 +244,7 @@ struct AppConfiguration: Codable, Sendable {
             type: .alternator,
             actionScript: "gh auth switch",
             statusScript: """
-            active=$(gh auth status 2>&1 | grep "Active account" | awk '{print $NF}')
-            if [ "$active" = "true" ]; then
-              host=$(gh auth status 2>&1 | grep "Logged in to" | awk '{print $4}')
-              if echo "$host" | grep -q "\(enterpriseHostname)"; then
-                echo "Work"
-              else
-                echo "Personal"
-              fi
-            else
-              echo "Unknown"
-            fi
+            gh auth status --active 2>&1 | grep -q '<PrivateAccountName e.g.: abeckDev>' && echo "Personal" || echo "Work"
             """,
         )
     }
