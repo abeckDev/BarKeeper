@@ -32,6 +32,7 @@ A lightweight macOS menu bar app for managing resources with one click. Run scri
 - **Action Buttons** — one-click script execution
 - **Critical Actions** — optional confirmation dialog for dangerous button actions
 - **Feed Resources** — run a script that returns JSON and browse the results inline in the menu bar
+- **Alternator** — cycle between named states (e.g. switch GitHub profiles, kubectl contexts) with one click
 - **Configurable Polling** — automatic status checks (1 min to 1 hour, or manual only)
 - **Settings UI** — add/edit/delete resources with an easy to access UI
 - **JSON Import/Export** — share and backup your configuration in common JSON
@@ -116,7 +117,7 @@ xcodebuild build -project BarKeeper.xcodeproj -scheme BarKeeper -configuration D
   <p><em>Resource editor showing configuration options for a toggle resource</em></p>
 </div>
 
-BarKeeper supports three resource types:
+BarKeeper supports four resource types:
 
 #### Toggle
 
@@ -259,6 +260,17 @@ echo "$response" | jq '{
 
 > Any tool that outputs the FeedPayload JSON works — `curl` + `jq`, a Python script, a custom CLI, etc.
 
+#### Alternator
+
+A cycling resource with a **status script** and an **action script**. The status script prints the current state label to stdout (e.g. `Personal` or `Work`); that label is shown as a pill badge in the menu bar row. Clicking the **⇄** button runs the action script to advance to the next state, then immediately re-runs the status script to refresh the badge.
+
+Use this type for tools that rotate between discrete states with a single command — for example:
+
+- Switching between GitHub.com and GitHub Enterprise accounts (`gh auth switch`)
+- Rotating `kubectl` contexts (`kubectl config use-context`)
+
+> See the wiki for a step-by-step guide: **Using the Alternator to Switch Git Accounts**.
+
 ### Azure Fabric Capacity Example
 
 The built-in template uses these Azure CLI commands:
@@ -314,6 +326,13 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
       "onScript": null,
       "offScript": null,
       "actionScript": "./scripts/check-deployments.sh"
+    },
+    {
+      "id": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
+      "name": "GitHub Profile",
+      "type": "alternator",
+      "statusScript": "gh auth status 2>&1 | grep -A1 'Active account: true' | grep 'Logged in to' | awk '{print $4}'",
+      "actionScript": "gh auth switch"
     }
   ]
 }
@@ -325,11 +344,11 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 | `resources` | `[Resource]` | Ordered array of resources shown in the menu. |
 | `id` | `UUID` | Auto-generated unique identifier. |
 | `name` | `String` | Display name shown in the menu bar and settings. |
-| `type` | `"button"` \| `"toggle"` \| `"feed"` | Resource type. |
-| `statusScript` | `String?` | Toggle only — script to determine on/off state. |
+| `type` | `"button"` \| `"toggle"` \| `"feed"` \| `"alternator"` | Resource type. |
+| `statusScript` | `String?` | Toggle/Alternator — script to determine state. Toggle: exit `0` = ON. Alternator: stdout is the current state label. |
 | `onScript` | `String?` | Toggle only — script to turn the resource on. |
 | `offScript` | `String?` | Toggle only — script to turn the resource off. |
-| `actionScript` | `String?` | Button/Feed — script to run when clicked (button) or refreshed (feed). Feed scripts must print FeedPayload JSON to stdout. |
+| `actionScript` | `String?` | Button/Feed/Alternator — script to run when clicked (button), refreshed (feed), or switched (alternator). Feed scripts must print FeedPayload JSON to stdout. |
 | `critical` | `Bool` | Button only — if `true`, a system-level confirmation dialog is shown before executing the action. Defaults to `false` when omitted. |
 
 ### Import & Export
@@ -343,13 +362,13 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 Sources/
 ├── BarKeeperApp.swift           # App entry with MenuBarExtra + Settings scenes
 ├── Models/
-│   ├── Resource.swift           # Resource config model (button/toggle/feed) & FeedPayload schema
+│   ├── Resource.swift           # Resource config model (button/toggle/feed/alternator) & FeedPayload schema
 │   └── ResourceState.swift      # Runtime state (@Observable), incl. lastFeed for feed resources
 ├── ViewModels/
 │   └── ResourceManager.swift    # Config, state, polling, script execution, feed parsing
 ├── Views/
 │   ├── MenuBarView.swift        # Menu bar popup
-│   ├── ResourceRowView.swift    # Toggle / button / feed row with expandable item list
+│   ├── ResourceRowView.swift    # Toggle / button / feed / alternator row with expandable item list
 │   ├── SettingsView.swift       # Settings window with sidebar
 │   └── ResourceEditorView.swift # Resource add/edit form
 └── Utilities/
