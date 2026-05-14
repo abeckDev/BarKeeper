@@ -333,7 +333,7 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
       "id": "B2C3D4E5-F6A7-8901-BCDE-F12345678901",
       "name": "GitHub Profile",
       "type": "alternator",
-      "statusScript": "gh auth status 2>&1 | grep -A1 'Active account: true' | grep 'Logged in to' | awk '{print $4}'",
+      "statusScript": "gh auth status --active 2>&1 | grep -q '<PrivateAccountName e.g.: abeckDev>' && echo "Personal" || echo "Work"",
       "actionScript": "gh auth switch"
     }
   ]
