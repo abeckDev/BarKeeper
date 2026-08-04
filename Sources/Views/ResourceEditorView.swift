@@ -7,6 +7,7 @@ struct ResourceEditorView: View {
     @State private var name: String = ""
     @State private var type: ResourceType = .toggle
     @State private var actionScript: String = ""
+    @State private var inputPlaceholder: String = ""
     @State private var statusScript: String = ""
     @State private var onScript: String = ""
     @State private var offScript: String = ""
@@ -26,6 +27,7 @@ struct ResourceEditorView: View {
                     Label("Toggle", systemImage: "switch.2").tag(ResourceType.toggle)
                     Label("Feed", systemImage: "list.bullet.rectangle").tag(ResourceType.feed)
                     Label("Alternator", systemImage: "arrow.left.arrow.right").tag(ResourceType.alternator)
+                    Label("Launcher", systemImage: "link").tag(ResourceType.launcher)
                 }
             }
 
@@ -47,6 +49,13 @@ struct ResourceEditorView: View {
                 }
                 Section("Action Script") {
                     scriptEditor(text: $actionScript, placeholder: "Script to switch to the other state, e.g. gh auth switch")
+                }
+            } else if type == .launcher {
+                Section("Action Script") {
+                    scriptEditor(text: $actionScript, placeholder: "Command with {input} placeholder, e.g. open \"https://example.com/{input}\"")
+                }
+                Section("Input Placeholder") {
+                    TextField("Enter value…", text: $inputPlaceholder)
                 }
             } else {
                 Section("Status Script") {
@@ -79,6 +88,7 @@ struct ResourceEditorView: View {
         .onChange(of: name) { _, _ in saveIfInline() }
         .onChange(of: type) { _, _ in saveIfInline() }
         .onChange(of: actionScript) { _, _ in saveIfInline() }
+        .onChange(of: inputPlaceholder) { _, _ in saveIfInline() }
         .onChange(of: statusScript) { _, _ in saveIfInline() }
         .onChange(of: onScript) { _, _ in saveIfInline() }
         .onChange(of: offScript) { _, _ in saveIfInline() }
@@ -108,6 +118,7 @@ struct ResourceEditorView: View {
         name = r.name
         type = r.type
         actionScript = r.actionScript ?? ""
+        inputPlaceholder = r.inputPlaceholder ?? ""
         statusScript = r.statusScript ?? ""
         onScript = r.onScript ?? ""
         offScript = r.offScript ?? ""
@@ -120,7 +131,8 @@ struct ResourceEditorView: View {
             id: resource?.id ?? UUID(),
             name: name,
             type: type,
-            actionScript: (type == .button || type == .feed || type == .alternator) ? actionScript.nilIfEmpty : nil,
+            actionScript: (type == .button || type == .feed || type == .alternator || type == .launcher) ? actionScript.nilIfEmpty : nil,
+            inputPlaceholder: type == .launcher ? inputPlaceholder.nilIfEmpty : nil,
             statusScript: (type == .toggle || type == .alternator) ? statusScript.nilIfEmpty : nil,
             onScript: type == .toggle ? onScript.nilIfEmpty : nil,
             offScript: type == .toggle ? offScript.nilIfEmpty : nil,

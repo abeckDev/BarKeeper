@@ -175,6 +175,54 @@ final class ResourceManager {
         }
     }
 
+    func runLauncher(_ resourceId: UUID, input: String) {
+        guard let state = resources.first(where: { $0.id == resourceId }),
+              state.type == .launcher else { return }
+
+        let value = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty else { return }
+
+        Task {
+            state.isLoading = true
+            state.lastError = nil
+
+            guard let actionScript = state.resource.actionScript, !actionScript.isEmpty else {
+                let errorMessage = "No action script configured"
+                state.lastError = errorMessage
+                state.isLoading = false
+                sendNotification(title: state.name, message: errorMessage, type: .error)
+                return
+            }
+            guard actionScript.contains("{input}") else {
+                let errorMessage = "Action script must contain {input}"
+                state.lastError = errorMessage
+                state.isLoading = false
+                sendNotification(title: state.name, message: errorMessage, type: .error)
+                return
+            }
+
+            let script = actionScript.replacingOccurrences(of: "{input}", with: value.shellEscaped)
+            do {
+                let result = try await shell.run(script)
+                if result.succeeded {
+                    sendNotification(
+                        title: state.name,
+                        message: "Action completed successfully.",
+                        type: .success
+                    )
+                } else {
+                    let errorMessage = result.stderr.isEmpty ? "Script failed (exit code \(result.exitCode))" : result.stderr
+                    state.lastError = errorMessage
+                    sendNotification(title: state.name, message: errorMessage, type: .error)
+                }
+            } catch {
+                state.lastError = error.localizedDescription
+                sendNotification(title: state.name, message: error.localizedDescription, type: .error)
+            }
+            state.isLoading = false
+        }
+    }
+
     func runFeed(_ resourceId: UUID) {
         guard let state = resources.first(where: { $0.id == resourceId }),
               state.type == .feed else { return }
@@ -349,5 +397,9 @@ final class ResourceManager {
 private extension String {
     var nilIfEmpty: String? {
         isEmpty ? nil : self
+    }
+
+    var shellEscaped: String {
+        "'" + replacingOccurrences(of: "'", with: "'\\''") + "'"
     }
 }

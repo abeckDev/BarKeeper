@@ -6,6 +6,7 @@ enum ResourceType: String, Codable, CaseIterable, Sendable {
     case feed
     /// Shows a string label (stdout of statusScript) and switches state with one click (actionScript).
     case alternator
+    case launcher
 }
 
 /// Output schema for `.feed` resources. A feed resource's actionScript is
@@ -139,6 +140,9 @@ struct Resource: Identifiable, Codable, Sendable {
     // Button & Feed: single action script (Feed's stdout must be JSON).
     var actionScript: String?
 
+    // Launcher: placeholder text for the input field.
+    var inputPlaceholder: String?
+
     // Toggle: status/on/off scripts
     var statusScript: String?
     var onScript: String?
@@ -152,6 +156,7 @@ struct Resource: Identifiable, Codable, Sendable {
         name: String,
         type: ResourceType,
         actionScript: String? = nil,
+        inputPlaceholder: String? = nil,
         statusScript: String? = nil,
         onScript: String? = nil,
         offScript: String? = nil,
@@ -161,6 +166,7 @@ struct Resource: Identifiable, Codable, Sendable {
         self.name = name
         self.type = type
         self.actionScript = actionScript
+        self.inputPlaceholder = inputPlaceholder
         self.statusScript = statusScript
         self.onScript = onScript
         self.offScript = offScript
@@ -173,6 +179,7 @@ struct Resource: Identifiable, Codable, Sendable {
         self.name = try c.decode(String.self, forKey: .name)
         self.type = try c.decode(ResourceType.self, forKey: .type)
         self.actionScript = try c.decodeIfPresent(String.self, forKey: .actionScript)
+        self.inputPlaceholder = try c.decodeIfPresent(String.self, forKey: .inputPlaceholder)
         self.statusScript = try c.decodeIfPresent(String.self, forKey: .statusScript)
         self.onScript = try c.decodeIfPresent(String.self, forKey: .onScript)
         self.offScript = try c.decodeIfPresent(String.self, forKey: .offScript)
