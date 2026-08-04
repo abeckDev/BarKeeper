@@ -117,7 +117,7 @@ xcodebuild build -project BarKeeper.xcodeproj -scheme BarKeeper -configuration D
   <p><em>Resource editor showing configuration options for a toggle resource</em></p>
 </div>
 
-BarKeeper supports four resource types:
+BarKeeper supports five resource types:
 
 #### Toggle
 
@@ -134,6 +134,16 @@ Clicking the toggle executes the on or off script based on the current state.
 A stateless resource with a **single action script**. Clicking it runs the script immediately. Useful for one-off tasks like flushing a cache, deploying a build, or opening a dashboard.
 
 **Critical Action** — Buttons can optionally be marked as *critical*. When `critical` is set to `true`, clicking the button shows a system-level confirmation dialog before the script is executed. This is useful for destructive or irreversible operations (e.g. deleting resources, force-pushing). If the `critical` field is omitted from the config, it defaults to `false`.
+
+#### Launcher
+
+A resource with a text field and **Go** button. Enter a value, then click Go or press Return to run its action script. The script must contain `{input}`, which BarKeeper replaces with the shell-escaped value you entered. `inputPlaceholder` optionally customizes the field hint; it defaults to `Enter value…`.
+
+For example, this Launcher opens an MSX search:
+
+```bash
+open "https://microsoftsales.crm.dynamics.com/main.aspx?forceUCI=1&pagetype=search&searchText={input}"
+```
 
 #### Feed
 
@@ -186,6 +196,7 @@ The script must exit with code `0` and print a JSON object matching the **FeedPa
 |------------|-------------|---------------|
 | **Status** | Resource is ON (green) | Resource is OFF (gray) |
 | **On/Off/Action** | Success | Error (shown in tooltip) |
+| **Launcher** | Command runs with the entered value | Error (shown in tooltip) |
 | **Feed** | JSON payload parsed and displayed | Error (shown in tooltip) |
 
 ## How Scripts Are Executed
@@ -335,6 +346,13 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
       "type": "alternator",
       "statusScript": "gh auth status --active 2>&1 | grep -q '<PrivateAccountName e.g.: abeckDev>' && echo "Personal" || echo "Work"",
       "actionScript": "gh auth switch"
+    },
+    {
+      "id": "C3D4E5F6-A7B8-9012-CDEF-123456789012",
+      "name": "MSX Lookup",
+      "type": "launcher",
+      "actionScript": "open \"https://microsoftsales.crm.dynamics.com/main.aspx?forceUCI=1&pagetype=search&searchText={input}\"",
+      "inputPlaceholder": "Paste MSX record ID"
     }
   ]
 }
@@ -346,11 +364,12 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 | `resources` | `[Resource]` | Ordered array of resources shown in the menu. |
 | `id` | `UUID` | Auto-generated unique identifier. |
 | `name` | `String` | Display name shown in the menu bar and settings. |
-| `type` | `"button"` \| `"toggle"` \| `"feed"` \| `"alternator"` | Resource type. |
+| `type` | `"button"` \| `"toggle"` \| `"feed"` \| `"alternator"` \| `"launcher"` | Resource type. |
 | `statusScript` | `String?` | Toggle/Alternator — script to determine state. Toggle: exit `0` = ON. Alternator: stdout is the current state label. |
 | `onScript` | `String?` | Toggle only — script to turn the resource on. |
 | `offScript` | `String?` | Toggle only — script to turn the resource off. |
-| `actionScript` | `String?` | Button/Feed/Alternator — script to run when clicked (button), refreshed (feed), or switched (alternator). Feed scripts must print FeedPayload JSON to stdout. |
+| `actionScript` | `String?` | Button/Feed/Alternator/Launcher — script to run when clicked, refreshed, switched, or launched. Launcher scripts must contain `{input}`. Feed scripts must print FeedPayload JSON to stdout. |
+| `inputPlaceholder` | `String?` | Launcher only — hint text for the input field. Defaults to `Enter value…`. |
 | `critical` | `Bool` | Button only — if `true`, a system-level confirmation dialog is shown before executing the action. Defaults to `false` when omitted. |
 
 ### Import & Export
@@ -364,13 +383,13 @@ Config is stored at `~/Library/Application Support/BarKeeper/config.json` and ma
 Sources/
 ├── BarKeeperApp.swift           # App entry with MenuBarExtra + Settings scenes
 ├── Models/
-│   ├── Resource.swift           # Resource config model (button/toggle/feed/alternator) & FeedPayload schema
+│   ├── Resource.swift           # Resource config model (button/toggle/feed/alternator/launcher) & FeedPayload schema
 │   └── ResourceState.swift      # Runtime state (@Observable), incl. lastFeed for feed resources
 ├── ViewModels/
 │   └── ResourceManager.swift    # Config, state, polling, script execution, feed parsing
 ├── Views/
 │   ├── MenuBarView.swift        # Menu bar popup
-│   ├── ResourceRowView.swift    # Toggle / button / feed / alternator row with expandable item list
+│   ├── ResourceRowView.swift    # Toggle / button / feed / alternator / launcher rows
 │   ├── SettingsView.swift       # Settings window with sidebar
 │   └── ResourceEditorView.swift # Resource add/edit form
 └── Utilities/

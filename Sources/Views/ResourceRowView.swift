@@ -6,6 +6,7 @@ struct ResourceRowView: View {
     let state: ResourceState
 
     @State private var isExpanded: Bool = false
+    @State private var launcherInput: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -66,6 +67,10 @@ struct ResourceRowView: View {
             .buttonStyle(.plain)
         case .alternator:
             Image(systemName: "arrow.left.arrow.right")
+                .font(.caption)
+                .foregroundStyle(state.lastError != nil ? .red : .secondary)
+        case .launcher:
+            Image(systemName: "link")
                 .font(.caption)
                 .foregroundStyle(state.lastError != nil ? .red : .secondary)
         }
@@ -143,7 +148,24 @@ struct ResourceRowView: View {
                 .controlSize(.small)
                 .help("Switch to the other state")
             }
+        case .launcher:
+            HStack(spacing: 6) {
+                TextField(state.resource.inputPlaceholder ?? "Enter value…", text: $launcherInput)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 150)
+                    .onSubmit { runLauncher() }
+                Button("Go") {
+                    runLauncher()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .disabled(launcherInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
         }
+    }
+
+    private func runLauncher() {
+        manager.runLauncher(state.id, input: launcherInput)
     }
 
     private func feedItems(_ feed: FeedPayload) -> some View {
